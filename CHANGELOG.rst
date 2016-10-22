@@ -2,7 +2,7 @@
 Changelog
 =========
 
-0.1.0 (2016-10-22)
------------------------------------------
+0.1.0 (under development)
+-------------------------
 
-* First release on PyPI.
+* Project started

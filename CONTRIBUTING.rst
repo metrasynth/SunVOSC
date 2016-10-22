@@ -17,8 +17,8 @@ When `reporting a bug <https://github.com/metrasynth/sunvosc/issues>`_ please in
 Documentation improvements
 ==========================
 
-SunVosc could always use more documentation, whether as part of the
-official SunVosc docs, in docstrings, or even on the web in blog posts,
+SunVOSC could always use more documentation, whether as part of the
+official SunVOSC docs, in docstrings, or even on the web in blog posts,
 articles, and such.
 
 Feature requests and feedback

@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-
 import os
 
 
@@ -22,7 +20,7 @@ if os.getenv('SPELLCHECK'):
 
 source_suffix = '.rst'
 master_doc = 'index'
-project = 'SunVosc'
+project = 'SunVOSC'
 year = '2016'
 author = 'Matthew Scott'
 copyright = '{0}, {1}'.format(year, author)

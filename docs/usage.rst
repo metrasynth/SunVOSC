@@ -2,6 +2,6 @@
 Usage
 =====
 
-To use SunVosc in a project::
+To use SunVOSC in a project::
 
 	import sunvosc
