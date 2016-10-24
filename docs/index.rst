@@ -9,6 +9,7 @@ Contents
    installation
    usage
    reference/index
+   internals
    namespaces
    contributing
    authors
