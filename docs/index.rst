@@ -10,7 +10,7 @@ Contents
    usage
    reference/index
    internals
-   namespaces
+   namespace
    contributing
    authors
    changelog
