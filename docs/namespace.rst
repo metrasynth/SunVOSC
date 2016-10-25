@@ -19,6 +19,18 @@ Messages received by SunVOSC
 ============================
 
 
+/init,ii
+--------
+
+Initialize a SunVox DLL engine.
+
+``frequency(i)``
+    One of ``44100``, ``48000``, ``96000``, or ``192000``.
+
+``channels(i)``
+    ``1`` for mono, ``2`` for stereo.
+
+
 /slot<n>/inform/start,si
 ------------------------
 
