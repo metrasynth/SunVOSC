@@ -21,7 +21,7 @@ Slots
 Internal pattern
 ================
 
--   SunVox maintains a single internal pattern that is used for
+-   SunVox DLL maintains a single internal pattern that is used for
     playback of notes using the ``sv_send_event`` API call.
 
 -   It contains 16 tracks.
@@ -123,6 +123,9 @@ Project patterns
 Timing
 ======
 
+Tempo and ticks
+---------------
+
 -   Upon slot initialization, SunVOSC will set tempo to ``125`` and
     ticks-per-line to ``1``.
 
@@ -136,3 +139,12 @@ Timing
 -   Peer is responsible for maintaining its own knowledge of timing for
     the purposes of synchronizing with other systems, e.g. generating MIDI
     clock events.
+
+LFOs
+----
+
+-   SunVox LFOs do not automatically reset during transport commands
+    such as start/stop.
+
+-   Peer is responsible for resetting LFO as needed via the "Set Phase"
+    controller if LFO phase must be deterministic.
