@@ -1,32 +1,36 @@
-"""
-Module that contains the command line app.
-
-Why does this file exist, and why not put this in __main__?
-
-  You might be tempted to import things from __main__ later, but that will cause
-  problems: the code will get executed twice:
-
-  - When you run `python -msunvosc` python will execute
-    ``__main__.py`` as a script. That means there won't be any
-    ``sunvosc.__main__`` in ``sys.modules``.
-  - When you import __main__ it will get executed again (as a module) because
-    there's no ``sunvosc.__main__`` in ``sys.modules``.
-
-  Also see (1) from http://click.pocoo.org/5/setuptools/#setuptools-integration
-"""
+import logging
 import sys
+import threading
+
+import begin
+from pythonosc import osc_server
+import sunvox
+
+from sunvosc.dispatcher import SunVoscDispatcher
 
 
-def main(argv=sys.argv):
+@begin.start
+@begin.logging
+def main(
+    interface: 'Interface to listen on' = 'localhost',
+    port: 'Port to listen to' = 9000,
+    freq: 'Audio output frequency (frames/sec)' = 44100,
+    channels: 'Audio channels (1 or 2)' = 2,
+):
     """
-    Args:
-        argv (list): List of arguments
-
-    Returns:
-        int: A return code
-
-    Does stuff.
+    Bidirectional OSC bridge for SunVox DLL.
     """
-
-    print(argv)
-    return 0
+    process = sunvox.dll
+    process.init(None, freq, channels, 0)
+    dispatcher = SunVoscDispatcher(process)
+    watch_thread = threading.Thread(target=dispatcher.watch_playback)
+    watch_thread.start()
+    server = osc_server.ThreadingOSCUDPServer((interface, port), dispatcher)
+    logging.info('Serving on %s:%s', *server.server_address)
+    try:
+        server.serve_forever()
+    except KeyboardInterrupt:
+        print()
+        logging.info('Exiting')
+        process.deinit()
+        return 0

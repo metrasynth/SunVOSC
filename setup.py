@@ -51,10 +51,19 @@ setup(
         'Topic :: Utilities',
     ],
     keywords=[
-        # eg: 'keyword1', 'keyword2', 'keyword3',
+        'sunvox',
+        'osc',
+        'audio',
+        'music',
+        'sound',
+        'tracker',
     ],
     install_requires=[
         # eg: 'aspectlib==1.1.1', 'six>=1.7',
+        'begins',
+        'python-osc',
+        'sounddevice',
+        'sunvox-dll-python',
     ],
     extras_require={
         # eg:
@@ -63,7 +72,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'sunvosc = sunvosc.cli:main',
+            'sunvosc = sunvosc.cli:main.start',
         ]
     },
 )
