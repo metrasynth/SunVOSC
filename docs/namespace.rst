@@ -6,60 +6,50 @@ OSC Namespace
 All arguments are required unless marked as optional.
 
 
-/slot<n>/...
-============
+/slotN/...
+==========
 
 Address patterns pertaining to a specific slot witin the SunVox DLL
 playback engine.
 
-*<n>* must be in the range ``0..3``.
+*N* must be in the range ``0..3``.
 
 
-Messages received by SunVOSC
-============================
+Messages sent to SunVOSC from peers
+===================================
 
 
-/init,ii
---------
-
-Initialize a SunVox DLL engine.
-
-``frequency(i)``
-    One of ``44100``, ``48000``, ``96000``, or ``192000``.
-
-``channels(i)``
-    ``1`` for mono, ``2`` for stereo.
-
-
-/slot<n>/inform/start,si
-------------------------
+/slotN/inform/start,si
+----------------------
 
 Add an endpoint to send informational OSC messages to.
 
-``address(s)``
-    The string-formatted hostname or IP address to inform.
+``host(s)``
+    The hostname or IP address to inform.
 
 ``port(i)``
     The port to inform.
 
 
-/slot<n>/inform/stop,si
------------------------
+/slotN/inform/stop,si
+---------------------
 
 Remove an endpoint so it no longer receives informational OSC messages.
 
-``address(s)``
+``host(s)``
     The string-formatted hostname or IP address to stop informing.
 
 ``port(i)``
     The port to stop informing.
 
 
-/slot<n>/init,iisb
-------------------
+/slotN/init,ii[b|s]
+-------------------
 
 Stops slot playback, initializes with an empty or specified project,
-resets playback state, resets virtual row counter to ``-1``.
+resets playback state, resets virtual row counter to ``-1``, and
+resets master volume to either 80 for an empty project or the master
+volume set by the project being loaded.
 
 ``patterns(i)``
     Number of playback patterns to create. Must be at least 1 if initializing
@@ -69,43 +59,39 @@ resets playback state, resets virtual row counter to ``-1``.
 ``pattern_length(i)``
     Length of playback pattern(s). Must be within the range ``4..4096``.
 
-``project_filename(s)`` (optional)
-    Filename of existing SunVox project to initialize with.
-    Must be UTF-8 encoded.
+The third argument may be one of these options:
 
 ``project_data(b)`` (optional)
     Content of existing SunVox project to initialize with.
 
+``project_filename(s)`` (optional)
+    Filename of existing SunVox project to initialize with.
+    Must be UTF-8 encoded.
 
-/slot<n>/start
---------------
+
+/slotN/start
+------------
 
 Starts playback.
 
 
-/slot<n>/stop
--------------
+/slotN/stop
+-----------
 
 Stops playback. Does not reset module state.
 
 
-/slot<n>/reset
---------------
-
-Resets module state.
-
-
-/slot<n>/volume,i
------------------
+/slotN/volume,i
+---------------
 
 Sets master volume of slot.
 
 ``volume(i)``
-    The volume to set. Must be within the range ``0..???TODO???``.
+    The volume to set.
 
 
-/slot<n>/queue,iiiiiiiii
-------------------------
+/slotN/queue,iii(i|F)(i|F)(i|s|F)(i|F)(i|F)(i|F)
+------------------------------------------------
 
 Queues a command for playback.
 
@@ -121,79 +107,216 @@ Queues a command for playback.
 ``track(i)``
     The track to queue into. Must be within the range ``0..15``.
 
-``note_cmd(i)``
-    The note or note command to queue, or ``-1`` if not applicable.
+``note_cmd(i|F)``
+    The note or note command to queue, or ``False`` if not applicable.
 
-``velocity(i)``
+``velocity(i|F)``
     The velocity of the note. Must be within the range ``0..128``,
-    or ``-1`` if not applicable.
+    or ``False`` if not applicable.
 
-``module(i)``
-    The module to trigger. Must be within the range ``1..255``,
-    or ``-1`` if not triggering a module.
+``module(i|s|F)``
+    The module to trigger. ``False`` if not triggering a module.
+    If an actual module number, must be within the range ``1..255``.
+    May be a module tag instead, if actual module number is not known.
 
-``controller(i)``
+``controller(i|F)``
     The controller to set a value for. Must be within the range ``1..32``,
-    or ``-1`` if not adjusting a controller.
+    or ``False`` if not adjusting a controller.
 
-``effect(i)``
+``effect(i|F)``
     The note effect to apply. Must be a valid SunVox effect number,
-    or ``-1`` if not applying an effect. Must not be ``0x30``, which
-    stops playback; instead use the `/slot<n>/stop`_ command to do so.
+    or ``False`` if not applying an effect. Must not be ``0x30``, which
+    stops playback; instead use the `/slotN/stop`_ command to do so.
 
-``parameter(i)``
+``parameter(i|F)``
     The 32-bit "XXYY" encoded parameter for controller or effect,
-    or ``-1`` if not setting a parameter. Effects that require
+    or ``False`` if not setting a parameter. Effects that require
     separate "XX" and "YY" parameters must be encoded to "XXYY" form
     by the sender.
 
 
-/slot<n>/play,iiiiiii
----------------------
+/slotN/play,i(i|F)(i|F)(i|s|F)(i|F)(i|F)(i|F)
+---------------------------------------------
 
 Plays a note immediately using the SunVox DLL internal pattern.
 
 ``track(i)``
     The track to send the note to. Must be within the range ``0..15``.
 
-``note_cmd(i)``
-    The note or note command to queue, or ``-1`` if not applicable.
+``note_cmd(i|F)``
+    The note or note command to queue, or ``False`` if not applicable.
     Must not be an "FX to previous track" command.
 
-``velocity(i)``
+``velocity(i|F)``
     The velocity of the note. Must be within the range ``0..128``,
-    or ``-1`` if not applicable.
+    or ``False`` if not applicable.
 
-``module(i)``
-    The module to trigger. Must be within the range ``1..255``,
-    or ``-1`` if not triggering a module.
+``module(i|s|F)``
+    The module to trigger. ``False`` if not triggering a module.
+    If an actual module number, must be within the range ``1..255``.
+    May be a module tag instead, if actual module number is not known.
 
-``controller(i)``
+``controller(i|F)``
     The controller to set a value for. Must be within the range ``1..32``,
-    or ``-1`` if not adjusting a controller.
+    or ``False`` if not adjusting a controller.
 
-``effect(i)``
+``effect(i|F)``
     The note effect to apply. Must be a valid SunVox effect number,
-    or ``-1`` if not applying an effect. Must not be ``0x30``, which
-    stops playback; instead use the `/slot<n>/stop`_ command to do so.
+    or ``False`` if not applying an effect. Must not be ``0x30``, which
+    stops playback; instead use the `/slotN/stop`_ command to do so.
 
-``parameter(i)``
+``parameter(i|F)``
     The 32-bit "XXYY" encoded parameter for controller or effect,
-    or ``-1`` if not setting a parameter. Effects that require
+    or ``False`` if not setting a parameter. Effects that require
     separate "XX" and "YY" parameters must be encoded to "XXYY" form
     by the sender.
 
 
-Messages sent by SunVOSC
-========================
+/slotN/new_module,ss[iii]
+-------------------------
+
+``tag(s)``
+    A UUID representing the module that will be loaded.
+    SunVOSC will use this tag when sending a message containing
+    the actual module number.
+
+``module_type``
+    The type of the module, exactly as it appears in SunVox.
+    (e.g. ``Generator``)
+
+``name`` (default: same as ``module_type``)
+    The name of the new module.
+
+``x`` (default: 512)
+    X position of the module.
+
+``y`` (default: 512)
+    Y position of the module.
+
+``z`` (default: 0)
+    Z position (layer) of the module.
 
 
-/slot<n>/played,i
------------------
+/slotN/load_module,s(b|s)[iii]
+------------------------------
 
-This is sent one to each listener registered using `/slot<n>/inform/start,si`_
+``tag(s)``
+    A UUID representing the module that will be loaded.
+    SunVOSC will use this tag when sending a message containing
+    the actual module number.
+
+The second argument must be **one** of the following:
+
+``synth_data(b)``
+    Content of existing SunVox project to initialize with.
+
+``synth_filename(s)``
+    Filename of existing SunVox project to initialize with.
+    Must be UTF-8 encoded.
+
+Optional to specify module position:
+
+``x`` (default: 512)
+    X position of the module.
+
+``y`` (default: 512)
+    Y position of the module.
+
+``z`` (default: 0)
+    Z position (layer) of the module.
+
+
+/slotN/connect,(i|s)(i|s)
+-------------------------
+
+``module_from(i|s)``
+    Tag or module number of connection's source.
+
+``module_to(i|s)``
+    Tag or module number of of connection's destination.
+
+
+/slotN/disconnect,(i|s)(i|s)
+----------------------------
+
+``module_from(i|s)``
+    Tag or module number of connection's source.
+
+``module_to(i|s)``
+    Tag or module number of of connection's destination.
+
+
+Messages sent by SunVOSC to peers
+=================================
+
+These messages are broadcast to all listeners registered to be informed.
+
+
+/slotN/ready
+------------
+
+(No arguments.)
+
+Sent to indicate that the slot has been initialized.
+
+
+/slotN/module_created,s(i|F)
+----------------------------
+
+``tag(s)``
+    The tag sent when loading or creating a module.
+
+``number(i|F)``
+    The module number of the module that was loaded or created;
+    or ``False`` if the module couldn't be loaded or created.
+
+
+/slotN/modules_connected,ii
+---------------------------
+
+``module_from(i)``
+    Tag or module number of connection's source.
+
+``module_to(i)``
+    Tag or module number of of connection's destination.
+
+
+/slotN/modules_disconnected,ii
+------------------------------
+
+``module_from(i)``
+    Tag or module number of connection's source.
+
+``module_to(i)``
+    Tag or module number of of connection's destination.
+
+
+/slotN/started
+--------------
+
+(No arguments.)
+
+
+/slotN/stopped
+--------------
+
+(No arguments.)
+
+
+/slotN/played,(i|F)(i|F)
+------------------------
+
+``row(i|F)``
+    The virtual row that began playback;
+    ``False``if playback hasn't started.
+
+``frame(i|F)``
+    The audio frame number where the row began, relative to the beginning of
+    slot playback; ``False``if playback hasn't started.
+
+This is sent once to each listener registered using `/slotN/inform/start,si`_
 immediately after SunVOSC detects that a new row is being played by
 SunVox DLL.
 
-``row(i)``
-    The virtual row that began playback.
+This is also sent to a new listener immediately after it's registered
+to be informed.
