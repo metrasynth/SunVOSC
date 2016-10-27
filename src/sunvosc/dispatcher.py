@@ -1,6 +1,7 @@
 import ctypes
 from io import BytesIO
 import logging
+from threading import RLock
 from time import sleep
 
 from pythonosc import dispatcher, udp_client
@@ -17,7 +18,6 @@ def _slimmed(d, remove=['self', 'args', '_']):
     for key in remove:
         del d[key]
     return d
-
 
 
 class PeerDispatcher(dispatcher.Dispatcher):
@@ -87,6 +87,7 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
             # (slot, host, port): udp_client,
         }
         self._slots = [sunvox.Slot(process=process) for x in range(SLOTS)]
+        self._slot_locks = [RLock() for x in range(SLOTS)]
         self._last_played = [-1] * SLOTS
         self._last_virtual = [-1] * SLOTS
         for slot_number in range(SLOTS):
@@ -129,7 +130,7 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
                         continue
                     last = self._last_played[slot_number]
                     current = slot.get_current_line()
-                    if last != current:
+                    if 0 <= current != last:
                         self._last_played[slot_number] = current
                         if current < last:
                             current += slot.playback_pattern_length
@@ -137,8 +138,9 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
                         last_virtual = self._last_virtual[slot_number]
                         current_virtual = last_virtual + delta
                         self._last_virtual[slot_number] = current_virtual
-                        for row in range(last_virtual, current_virtual):
-                            self.scrub_row(slot, row)
+                        with self._slot_locks[slot_number]:
+                            for row in range(last_virtual, current_virtual):
+                                self.scrub_row(slot, row)
                         b = OscMessageBuilder('/slot{}/played'.format(slot_number))
                         b.add_arg(current_virtual, 'i')
                         b.add_arg(0, 'i')   # TODO: implement frame once we have buffered output
@@ -188,15 +190,17 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
             for _ in range(pattern_count)
         ]
         slot = self._slots[slot_number]
-        with BytesIO() as f:
-            project.write_to(f)
-            slot.load_file(f)
-        slot.rewind(0)
-        slot.set_autostop(False)
-        slot.playback_pattern_count = pattern_count
-        slot.playback_pattern_length = pattern_length
-        self._last_played[slot_number] = -1
-        self._last_virtual[slot_number] = -1
+        with self._slot_locks[slot_number]:
+            slot.stop()
+            with BytesIO() as f:
+                project.write_to(f)
+                slot.load_file(f)
+            slot.rewind(0)
+            slot.set_autostop(False)
+            slot.playback_pattern_count = pattern_count
+            slot.playback_pattern_length = pattern_length
+            self._last_played[slot_number] = -1
+            self._last_virtual[slot_number] = -1
         b = OscMessageBuilder('/slot{}/ready'.format(slot_number))
         msg = b.build()
         for client in self._clients.values():
@@ -205,7 +209,8 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
     def on_start(self, _, args):
         slot_number, = args
         logging.debug('start %r', _slimmed(locals()))
-        self._slots[slot_number].play()
+        with self._slot_locks[slot_number]:
+            self._slots[slot_number].play()
         b = OscMessageBuilder('/slot{}/started'.format(slot_number))
         msg = b.build()
         for client in self._clients.values():
@@ -214,7 +219,8 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
     def on_stop(self, _, args):
         slot_number, = args
         logging.debug('stop %r', _slimmed(locals()))
-        self._slots[slot_number].stop()
+        with self._slot_locks[slot_number]:
+            self._slots[slot_number].stop()
         b = OscMessageBuilder('/slot{}/stopped'.format(slot_number))
         msg = b.build()
         for client in self._clients.values():
@@ -223,7 +229,8 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
     def on_volume(self, _, args, volume):
         slot_number, = args
         logging.debug('volume %r', _slimmed(locals()))
-        self._slots[slot_number].volume(volume)
+        with self._slot_locks[slot_number]:
+            self._slots[slot_number].volume(volume)
 
     def on_queue(self, _, args, row, pattern, track, note_cmd, velocity,
                  module, controller, effect, parameter):
@@ -232,21 +239,23 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
         slot = self._slots[slot_number]
         actual_row = row % slot.playback_pattern_length
         offset = actual_row * PLAYBACK_PATTERN_TRACKS + track
-        note = slot.get_pattern_data(pattern)[offset]
-        note.note = note_cmd
-        note.vel = 0 if velocity is False else velocity + 1
-        note.module = 0 if module is False else module + 1
-        note.nothing = 0
-        note.ctl = controller << 16 + effect
-        note.ctl_val = parameter
+        with self._slot_locks[slot_number]:
+            note = slot.get_pattern_data(pattern)[offset]
+            note.note = note_cmd
+            note.vel = 0 if velocity is False else velocity + 1
+            note.module = 0 if module is False else module + 1
+            note.nothing = 0
+            note.ctl = controller << 16 + effect
+            note.ctl_val = parameter
 
     def on_play(self, _, args, track, note_cmd, velocity, module, controller,
                 effect, parameter):
         slot_number, = args
         logging.debug('play %r', _slimmed(locals()))
         ctl_val = controller << 16 + effect
-        self._slots[slot_number].send_event(
-            track, note_cmd, velocity, module + 1, ctl_val, parameter)
+        with self._slot_locks[slot_number]:
+            self._slots[slot_number].send_event(
+                track, note_cmd, velocity, module + 1, ctl_val, parameter)
 
     def on_load_module(self, _, args, tag, file_or_data, x=512, y=512, z=0):
         slot_number, = args
@@ -258,7 +267,9 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
         module_type = module_type.encode(rv.ENCODING)
         name = name.encode(rv.ENCODING) if name else None
         logging.debug('new_module %r', _slimmed(locals()))
-        module_number = self._slots[slot_number].new_module(module_type, name, x, y, z)
+        with self._slot_locks[slot_number]:
+            module_number = self._slots[slot_number].new_module(
+                module_type, name, x, y, z)
         b = OscMessageBuilder('/slot{}/module_created'.format(slot_number))
         b.add_arg(tag, 's')
         b.add_arg(module_number, 'i')
@@ -269,7 +280,8 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
     def on_connect(self, _, args, module_from, module_to):
         slot_number, = args
         logging.debug('connect %r', _slimmed(locals()))
-        self._slots[slot_number].connect_module(module_from, module_to)
+        with self._slot_locks[slot_number]:
+            self._slots[slot_number].connect_module(module_from, module_to)
         b = OscMessageBuilder('/slot{}/modules_connected'.format(slot_number))
         b.add_arg(module_from, 'i')
         b.add_arg(module_to, 'i')
@@ -280,4 +292,11 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
     def on_disconnect(self, _, args, module_from, module_to):
         slot_number, = args
         logging.debug('disconnect %r', _slimmed(locals()))
-        self._slots[slot_number].disconnect_module(module_from, module_to)
+        with self._slot_locks[slot_number]:
+            self._slots[slot_number].disconnect_module(module_from, module_to)
+        b = OscMessageBuilder('/slot{}/modules_disconnected'.format(slot_number))
+        b.add_arg(module_from, 'i')
+        b.add_arg(module_to, 'i')
+        msg = b.build()
+        for client in self._clients.values():
+            client.send(msg)
