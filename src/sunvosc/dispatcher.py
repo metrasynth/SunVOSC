@@ -1,6 +1,8 @@
 import ctypes
 from io import BytesIO
 import logging
+import os
+from tempfile import mkstemp
 from threading import RLock
 from time import sleep
 
@@ -260,6 +262,28 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
     def on_load_module(self, _, args, tag, file_or_data, x=512, y=512, z=0):
         slot_number, = args
         logging.debug('load_module %r', _slimmed(locals()))
+        if isinstance(file_or_data, str):
+            filename = file_or_data.encode(rv.ENCODING)
+            with self._slot_locks[slot_number]:
+                module_number = self._slots[slot_number].load_module(
+                    filename, x, y, z)
+        elif isinstance(file_or_data, bytes):
+            fd, name = mkstemp('.sunsynth')
+            os.write(fd, file_or_data)
+            os.close(fd)
+            slot = self._slots[slot_number]
+            with self._slot_locks[slot_number]:
+                module_number = slot.load_module(name.encode('utf8'), x, y, z)
+            os.unlink(name)
+        else:
+            logging.warning('Unrecognized file_or_data')
+            return
+        b = OscMessageBuilder('/slot{}/module_created'.format(slot_number))
+        b.add_arg(tag, 's')
+        b.add_arg(module_number, 'i')
+        msg = b.build()
+        for client in self._clients.values():
+            client.send(msg)
 
     def on_new_module(self, _, args, tag, module_type, name=None,
                       x=512, y=512, z=0):
