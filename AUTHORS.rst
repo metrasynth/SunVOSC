@@ -2,4 +2,4 @@
 Authors
 =======
 
-* Matthew Scott - https://github.com/metrasynth/sunvosc
+* `Matthew Scott <https://github.com/gldnspud>`__
