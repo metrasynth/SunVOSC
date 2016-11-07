@@ -56,7 +56,7 @@ Overview
 
 Bidirectional OSC bridge for SunVox DLL
 
-* Free software: BSD license
+* Free software: MIT license
 
 Installation
 ============

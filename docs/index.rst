@@ -14,6 +14,7 @@ Contents
    contributing
    authors
    changelog
+   license
 
 Indices and tables
 ==================
