@@ -1,10 +1,9 @@
 import logging
-import sys
 import threading
 
 import begin
-from pythonosc import osc_server
 import sunvox
+from pythonosc import osc_server
 
 from sunvosc.dispatcher import SunVoscDispatcher
 

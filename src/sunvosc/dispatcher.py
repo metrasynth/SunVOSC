@@ -1,15 +1,16 @@
 import ctypes
-from io import BytesIO
 import logging
 import os
+from io import BytesIO
 from tempfile import mkstemp
 from threading import RLock
 from time import sleep
 
-from pythonosc import dispatcher, udp_client
-from pythonosc.osc_message_builder import OscMessageBuilder
 import rv
 import sunvox
+from pythonosc import dispatcher
+from pythonosc import udp_client
+from pythonosc.osc_message_builder import OscMessageBuilder
 
 
 SLOTS = 4

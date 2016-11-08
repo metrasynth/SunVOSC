@@ -1,30 +1,34 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
+"""Bidirectional OSC bridge for SunVox DLL"""
+
 import io
+import os
 import re
+import sys
 from glob import glob
-from os.path import basename
-from os.path import dirname
-from os.path import join
-from os.path import splitext
 
 from setuptools import find_packages
 from setuptools import setup
 
+SETUP_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), 'src'))
+sys.path.append(SETUP_DIR)
+import sunvosc  # NOQA isort:skip
+
 
 def read(*names, **kwargs):
     return io.open(
-        join(dirname(__file__), *names),
+        os.path.join(os.path.dirname(__file__), *names),
         encoding=kwargs.get('encoding', 'utf8')
     ).read()
 
 
 setup(
     name='sunvosc',
-    version='0.1.0',
+    version=sunvosc.__version__,
     license='MIT',
-    description='Bidirectional OSC bridge for SunVox DLL',
+    description=__doc__,
     long_description='%s\n%s' % (
         re.compile('^.. start-badges.*^.. end-badges', re.M | re.S).sub('', read('README.rst')),
         re.sub(':[a-z]+:`~?(.*?)`', r'``\1``', read('CHANGELOG.rst'))
@@ -34,7 +38,7 @@ setup(
     url='https://github.com/metrasynth/sunvosc',
     packages=find_packages('src'),
     package_dir={'': 'src'},
-    py_modules=[splitext(basename(path))[0] for path in glob('src/*.py')],
+    py_modules=[os.path.splitext(os.path.basename(path))[0] for path in glob('src/*.py')],
     include_package_data=True,
     zip_safe=False,
     classifiers=[
