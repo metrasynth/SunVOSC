@@ -7,6 +7,7 @@ from threading import RLock
 from time import sleep
 
 import rv
+import rv.api
 import sunvox
 from pythonosc import dispatcher
 from pythonosc import udp_client
@@ -180,16 +181,17 @@ class SunVoscDispatcher(dispatcher.Dispatcher):
         slot_number, = args
         logging.debug('slot_init %r', _slimmed(locals()))
         if isinstance(file_or_data, bytes):
-            project = rv.read_sunvox_file(BytesIO(file_or_data))
+            project = rv.api.read_sunvox_file(BytesIO(file_or_data))
         elif isinstance(file_or_data, str):
-            project = rv.read_sunvox_file(file_or_data)
+            project = rv.api.read_sunvox_file(file_or_data)
         else:
-            project = rv.Project()
+            project = rv.api.Project()
             project.initial_tpl = 1
         # TODO: displace built-in patterns and set up pattern map.
         # (for now we just blow away the old patterns)
         project.patterns = [
-            rv.Pattern(tracks=PLAYBACK_PATTERN_TRACKS, lines=pattern_length)
+            rv.api.Pattern(tracks=PLAYBACK_PATTERN_TRACKS,
+                           lines=pattern_length)
             for _ in range(pattern_count)
         ]
         slot = self._slots[slot_number]
