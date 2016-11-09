@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
 
+import sunvosc
+
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -25,7 +27,8 @@ project = 'SunVOSC'
 year = '2016'
 author = 'Matthew Scott'
 copyright = '{0}, {1}'.format(year, author)
-version = release = '0.1.0'
+version = '.'.join(sunvosc.__version__.split('.')[:2])
+release = sunvosc.__version__
 
 pygments_style = 'trac'
 templates_path = ['.']
